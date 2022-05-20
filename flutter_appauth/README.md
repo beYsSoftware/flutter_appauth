@@ -69,15 +69,18 @@ final AuthorizationTokenResponse result = await appAuth.authorizeAndExchangeCode
 
 Upon completing the request successfully, the method should return an object (the `result` variable in the above sample code is an instance of the `AuthorizationTokenResponse` class) that contain details that should be stored for future use e.g. access token, refresh token etc.
 
-If you would prefer to not have the automatic code exchange to happen then can call the `authorize` method instead of the `authorizeAndExchangeCode` method. This will return an instance of the `AuthorizationResponse` class that will contain the code verifier that AppAuth generated (as part of implementing PKCE) when issuing the authorization request, the authorization code and additional parameters should they exist. Both of the code verifier and authorization code would need to be stored so they can then be reused to exchange the code later on e.g.
+If you would prefer to not have the automatic code exchange to happen then can call the `authorize` method instead of the `authorizeAndExchangeCode` method. This will return an instance of the `AuthorizationResponse` class that will contain the nonce value and code verifier (note: code verifier is used as part of implement PKCE) that AppAuth generated when issuing the authorization request, the authorization code and additional parameters should they exist. The nonce, code verifier and authorization code would need to be stored so they can then be reused to exchange the code later on e.g.
 
 ```dart
 final TokenResponse result = await appAuth.token(TokenRequest('<client_id>', '<redirect_url>',
         authorizationCode: '<authorization_code>',
         discoveryUrl: '<discovery_url>',
         codeVerifier: '<code_verifier>',
+        nonce: 'nonce',
         scopes: ['openid','profile', 'email', 'offline_access', 'api']));
 ```
+
+Reusing the nonce and code verifier is particularly important as the AppAuth SDKs (especially on Android) may return an error (e.g. ID token validation error due to nonce mismatch) if this isn't done
 
 ### Refreshing tokens
 
@@ -146,9 +149,9 @@ If your app is target API 30 or above (i.e. Android 11 or newer), make sure to a
 </queries>
 ```
 
-## iOS setup
+## iOS/macOS setup
 
-Go to the `Info.plist` for your iOS app to specify the custom scheme so that there should be a section in it that look similar to the following but replace `<your_custom_scheme>` with the desired value
+Go to the `Info.plist` for your iOS/macOS app to specify the custom scheme so that there should be a section in it that look similar to the following but replace `<your_custom_scheme>` with the desired value
 
 
 ```xml

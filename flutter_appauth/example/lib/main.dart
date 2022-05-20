@@ -12,8 +12,9 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isBusy = false;
-  final FlutterAppAuth _appAuth = FlutterAppAuth();
+  final FlutterAppAuth _appAuth = const FlutterAppAuth();
   String? _codeVerifier;
+  String? _nonce;
   String? _authorizationCode;
   String? _refreshToken;
   String? _accessToken;
@@ -60,72 +61,79 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              Visibility(
-                visible: _isBusy,
-                child: const LinearProgressIndicator(),
-              ),
-              ElevatedButton(
-                child: const Text('Sign in with no code exchange'),
-                onPressed: _signInWithNoCodeExchange,
-              ),
-              ElevatedButton(
-                child: const Text('Exchange code'),
-                onPressed: _authorizationCode != null ? _exchangeCode : null,
-              ),
-              ElevatedButton(
-                child: const Text('Sign in with auto code exchange'),
-                onPressed: () => _signInWithAutoCodeExchange(),
-              ),
-              if (Platform.isIOS)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton(
-                    child: const Text(
-                      'Sign in with auto code exchange using ephemeral session (iOS only)',
-                      textAlign: TextAlign.center,
-                    ),
-                    onPressed: () => _signInWithAutoCodeExchange(
-                        preferEphemeralSession: true),
-                  ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                Visibility(
+                  visible: _isBusy,
+                  child: const LinearProgressIndicator(),
                 ),
-              ElevatedButton(
-                child: const Text('Refresh token'),
-                onPressed: _refreshToken != null ? _refresh : null,
-              ),
-              ElevatedButton(
-                child: const Text('End session'),
-                onPressed: _idToken != null
-                    ? () async {
-                        await _endSession();
-                      }
-                    : null,
-              ),
-              const Text('authorization code'),
-              TextField(
-                controller: _authorizationCodeTextController,
-              ),
-              const Text('access token'),
-              TextField(
-                controller: _accessTokenTextController,
-              ),
-              const Text('access token expiration'),
-              TextField(
-                controller: _accessTokenExpirationTextController,
-              ),
-              const Text('id token'),
-              TextField(
-                controller: _idTokenTextController,
-              ),
-              const Text('refresh token'),
-              TextField(
-                controller: _refreshTokenTextController,
-              ),
-              const Text('test api results'),
-              Text(_userInfo ?? ''),
-            ],
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  child: const Text('Sign in with no code exchange'),
+                  onPressed: _signInWithNoCodeExchange,
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  child: const Text('Exchange code'),
+                  onPressed: _authorizationCode != null ? _exchangeCode : null,
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  child: const Text('Sign in with auto code exchange'),
+                  onPressed: () => _signInWithAutoCodeExchange(),
+                ),
+                if (Platform.isIOS || Platform.isMacOS)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                      child: const Text(
+                        'Sign in with auto code exchange using ephemeral session',
+                        textAlign: TextAlign.center,
+                      ),
+                      onPressed: () => _signInWithAutoCodeExchange(
+                          preferEphemeralSession: true),
+                    ),
+                  ),
+                ElevatedButton(
+                  child: const Text('Refresh token'),
+                  onPressed: _refreshToken != null ? _refresh : null,
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  child: const Text('End session'),
+                  onPressed: _idToken != null
+                      ? () async {
+                          await _endSession();
+                        }
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                const Text('authorization code'),
+                TextField(
+                  controller: _authorizationCodeTextController,
+                ),
+                const Text('access token'),
+                TextField(
+                  controller: _accessTokenTextController,
+                ),
+                const Text('access token expiration'),
+                TextField(
+                  controller: _accessTokenExpirationTextController,
+                ),
+                const Text('id token'),
+                TextField(
+                  controller: _idTokenTextController,
+                ),
+                const Text('refresh token'),
+                TextField(
+                  controller: _refreshTokenTextController,
+                ),
+                const Text('test api results'),
+                Text(_userInfo ?? ''),
+              ],
+            ),
           ),
         ),
       ),
@@ -147,6 +155,7 @@ class _MyAppState extends State<MyApp> {
   void _clearSessionInfo() {
     setState(() {
       _codeVerifier = null;
+      _nonce = null;
       _authorizationCode = null;
       _authorizationCodeTextController.clear();
       _accessToken = null;
@@ -181,6 +190,7 @@ class _MyAppState extends State<MyApp> {
           authorizationCode: _authorizationCode,
           discoveryUrl: _discoveryUrl,
           codeVerifier: _codeVerifier,
+          nonce: _nonce,
           scopes: _scopes));
       _processTokenResponse(result);
       await _testApi(result);
@@ -273,8 +283,9 @@ class _MyAppState extends State<MyApp> {
 
   void _processAuthResponse(AuthorizationResponse response) {
     setState(() {
-      // save the code verifier as it must be used when exchanging the token
+      // save the code verifier and nonce as it must be used when exchanging the token
       _codeVerifier = response.codeVerifier;
+      _nonce = response.nonce;
       _authorizationCode =
           _authorizationCodeTextController.text = response.authorizationCode!;
       _isBusy = false;
